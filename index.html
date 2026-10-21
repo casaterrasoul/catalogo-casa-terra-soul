@@ -120,6 +120,26 @@ $('#marca').addEventListener('click',()=>{clearTimeout(tt);tt=setTimeout(()=>toq
 filtros.addEventListener('click',e=>{const b=e.target.closest('.chip');if(b){ativo=b.dataset.c;desenhar();}});
 desenhar();
 
+/* ---------- Completa foto e preço pelo link (usa /api/produto) ---------- */
+async function completar(){
+ const fila=produtos.filter(p=>p.link&&(!p.img||!p.preco||!p.desc));
+ const um=async p=>{
+  const k='cts:'+p.link;let d=null;
+  try{const c=JSON.parse(localStorage.getItem(k)||'null');if(c&&Date.now()-c.t<864e5)d=c.d;}catch(e){}
+  if(!d){
+   try{const r=await fetch('/api/produto?url='+encodeURIComponent(p.link));if(!r.ok)return;d=await r.json();}catch(e){return;}
+   if(d&&!d.erro&&(d.img||d.preco||d.desc)){try{localStorage.setItem(k,JSON.stringify({t:Date.now(),d}));}catch(e){}}
+  }
+  if(!d||d.erro)return;
+  let mudou=false;
+  ['img','preco','desc'].forEach(c=>{if(!p[c]&&d[c]){p[c]=d[c];mudou=true;}});
+  if(!p.nome&&d.nome){p.nome=d.nome;mudou=true;}
+  if(mudou)desenhar();
+ };
+ for(let i=0;i<fila.length;i+=3)await Promise.all(fila.slice(i,i+3).map(um));
+}
+completar();
+
 /* ---------- Painel (só aparece para quem pode editar a página) ---------- */
 function abrirPainel(){
  adm.hidden=false;
